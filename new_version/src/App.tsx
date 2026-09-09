@@ -5,14 +5,6 @@ const LOWERCASE = 'abcdefghijklmnopqrstuvwxyz'
 const NUMBERS = '0123456789'
 const SYMBOLS = '!@#$%^&*()_+-=[]{}|;:,.<>?'
 
-// Cryptographically secure random integer in [0, max - 1]
-function getSecureRandomInt(max: number): number {
-  if (max <= 0) return 0
-  const array = new Uint32Array(1)
-  window.crypto.getRandomValues(array)
-  return array[0] % max
-}
-
 function generatePassword(
   length: number,
   useUpper: boolean,
@@ -23,51 +15,28 @@ function generatePassword(
   let charset = ''
   const guaranteed: string[] = []
 
-  if (useUpper) {
-    charset += UPPERCASE
-    guaranteed.push(UPPERCASE[getSecureRandomInt(UPPERCASE.length)])
-  }
-  if (useLower) {
-    charset += LOWERCASE
-    guaranteed.push(LOWERCASE[getSecureRandomInt(LOWERCASE.length)])
-  }
-  if (useNumbers) {
-    charset += NUMBERS
-    guaranteed.push(NUMBERS[getSecureRandomInt(NUMBERS.length)])
-  }
-  if (useSymbols) {
-    charset += SYMBOLS
-    guaranteed.push(SYMBOLS[getSecureRandomInt(SYMBOLS.length)])
-  }
+  if (useUpper) { charset += UPPERCASE; guaranteed.push(UPPERCASE[Math.floor(Math.random() * UPPERCASE.length)]) }
+  if (useLower) { charset += LOWERCASE; guaranteed.push(LOWERCASE[Math.floor(Math.random() * LOWERCASE.length)]) }
+  if (useNumbers) { charset += NUMBERS; guaranteed.push(NUMBERS[Math.floor(Math.random() * NUMBERS.length)]) }
+  if (useSymbols) { charset += SYMBOLS; guaranteed.push(SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)]) }
 
-  if (!charset || length <= 0) return ''
+  if (!charset) return ''
 
-  // Fill remaining slots
-  const remainingCount = Math.max(0, length - guaranteed.length)
-  const rest = Array.from({ length: remainingCount }, () =>
-    charset[getSecureRandomInt(charset.length)]
+  const rest = Array.from({ length: length - guaranteed.length }, () =>
+    charset[Math.floor(Math.random() * charset.length)]
   )
-
-  // Shuffle combined array using Fisher-Yates
   const all = [...guaranteed, ...rest]
   for (let i = all.length - 1; i > 0; i--) {
-    const j = getSecureRandomInt(i + 1)
-    const temp = all[i]
-    all[i] = all[j]
-    all[j] = temp
+    const j = Math.floor(Math.random() * (i + 1));
+    [all[i], all[j]] = [all[j], all[i]]
   }
-
-  return all.slice(0, length).join('')
+  return all.join('')
 }
 
-type Strength = 'None' | 'Too Weak' | 'Weak' | 'Moderate' | 'Strong' | 'Very Strong'
+type Strength = 'Too Weak' | 'Weak' | 'Moderate' | 'Strong' | 'Very Strong'
 
 function getStrength(password: string, options: number): { label: Strength; pct: number; color: string; desc: string } {
   const len = password.length
-  if (len === 0 || options === 0) {
-    return { label: 'None', pct: 0, color: '#9e9e9e', desc: 'Select at least one character set.' }
-  }
-
   let score = 0
   if (len >= 8) score++
   if (len >= 12) score++
@@ -76,45 +45,25 @@ function getStrength(password: string, options: number): { label: Strength; pct:
   if (options === 4) score++
 
   const map: Record<number, { label: Strength; pct: number; color: string; desc: string }> = {
-    0: { label: 'Too Weak', pct: 15, color: '#e53935', desc: "This password won't survive a second." },
-    1: { label: 'Weak', pct: 35, color: '#fb8c00', desc: 'Easily crackable. Add more options.' },
-    2: { label: 'Moderate', pct: 58, color: '#d4a020', desc: 'Not bad, but not Fort Knox either.' },
-    3: { label: 'Strong', pct: 80, color: '#43a047', desc: 'Solid. Hard to crack.' },
+    0: { label: 'Too Weak', pct: 8, color: '#e53935', desc: "This password won't survive a second." },
+    1: { label: 'Weak', pct: 28, color: '#fb8c00', desc: 'Easily crackable. Add more options.' },
+    2: { label: 'Moderate', pct: 52, color: '#d4a020', desc: 'Not bad, but not Fort Knox either.' },
+    3: { label: 'Strong', pct: 75, color: '#43a047', desc: 'Solid. Hard to crack.' },
     4: { label: 'Very Strong', pct: 100, color: '#1e88e5', desc: 'Excellent. Nearly uncrackable.' },
     5: { label: 'Very Strong', pct: 100, color: '#1e88e5', desc: 'Excellent. Nearly uncrackable.' },
   }
   return map[Math.min(score, 5)]
 }
 
-function Toggle({
-  on,
-  disabled,
-  onChange,
-}: {
-  on: boolean
-  disabled?: boolean
-  onChange: (v: boolean) => void
-}) {
+function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void }) {
   return (
     <div
       className={`toggle-track ${on ? 'on' : 'off'}`}
-      style={{
-        opacity: disabled ? 0.5 : 1,
-        cursor: disabled ? 'not-allowed' : 'pointer',
-      }}
       role="switch"
       aria-checked={on}
-      aria-disabled={disabled}
-      tabIndex={disabled ? -1 : 0}
-      onClick={() => {
-        if (!disabled) onChange(!on)
-      }}
-      onKeyDown={(e) => {
-        if (!disabled && (e.key === ' ' || e.key === 'Enter')) {
-          e.preventDefault()
-          onChange(!on)
-        }
-      }}
+      tabIndex={0}
+      onClick={() => onChange(!on)}
+      onKeyDown={(e) => { if (e.key === ' ' || e.key === 'Enter') onChange(!on) }}
     >
       <div className="toggle-thumb" />
     </div>
@@ -126,13 +75,13 @@ function Screw() {
 }
 
 export default function App() {
-  const [length, setLength] = useState(14)
+  const [length, setLength] = useState(12)
   const [useUpper, setUseUpper] = useState(true)
   const [useLower, setUseLower] = useState(true)
   const [useNumbers, setUseNumbers] = useState(true)
   const [useSymbols, setUseSymbols] = useState(true)
   const [password, setPassword] = useState(() =>
-    generatePassword(14, true, true, true, true)
+    generatePassword(12, true, true, true, true)
   )
   const [copied, setCopied] = useState(false)
   const [spinning, setSpinning] = useState(false)
@@ -150,50 +99,30 @@ export default function App() {
   ) => {
     const pw = generatePassword(len, upper, lower, nums, syms)
     setPassword(pw)
-    setCopied(false)
     setSpinning(true)
     setTimeout(() => setSpinning(false), 500)
   }, [length, useUpper, useLower, useNumbers, useSymbols])
 
-  const handleCopy = async () => {
+  const handleCopy = () => {
     if (!password) return
-    try {
-      await navigator.clipboard.writeText(password)
+    navigator.clipboard.writeText(password).then(() => {
       setCopied(true)
       if (copyTimeout.current) clearTimeout(copyTimeout.current)
       copyTimeout.current = setTimeout(() => setCopied(false), 1800)
-    } catch {
-      // Fallback
-      const textarea = document.createElement('textarea')
-      textarea.value = password
-      document.body.appendChild(textarea)
-      textarea.select()
-      document.execCommand('copy')
-      textarea.remove()
-      setCopied(true)
-      if (copyTimeout.current) clearTimeout(copyTimeout.current)
-      copyTimeout.current = setTimeout(() => setCopied(false), 1800)
-    }
+    })
   }
 
-  const handleToggle = (key: 'upper' | 'lower' | 'nums' | 'syms') => {
-    const nextStates = {
-      upper: key === 'upper' ? !useUpper : useUpper,
-      lower: key === 'lower' ? !useLower : useLower,
-      nums: key === 'nums' ? !useNumbers : useNumbers,
-      syms: key === 'syms' ? !useSymbols : useSymbols,
+  const handleToggle = (setter: (v: boolean) => void, current: boolean, key: 'upper' | 'lower' | 'nums' | 'syms') => {
+    const next = !current
+    setter(next)
+    const args = {
+      upper: key === 'upper' ? next : useUpper,
+      lower: key === 'lower' ? next : useLower,
+      nums: key === 'nums' ? next : useNumbers,
+      syms: key === 'syms' ? next : useSymbols,
     }
-
-    // Prevent deselecting all options (keep at least one active)
-    const nextCount = Object.values(nextStates).filter(Boolean).length
-    if (nextCount === 0) return
-
-    setUseUpper(nextStates.upper)
-    setUseLower(nextStates.lower)
-    setUseNumbers(nextStates.nums)
-    setUseSymbols(nextStates.syms)
-
-    regenerate(length, nextStates.upper, nextStates.lower, nextStates.nums, nextStates.syms)
+    const any = args.upper || args.lower || args.nums || args.syms
+    if (any) regenerate(length, args.upper, args.lower, args.nums, args.syms)
   }
 
   const handleLength = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -202,24 +131,16 @@ export default function App() {
     regenerate(val)
   }
 
-  const sliderPercent = ((length - 6) / (32 - 6)) * 100
   const sliderStyle = {
-    background: `linear-gradient(to right, #1c1c1c ${sliderPercent}%, rgba(0,0,0,0.12) ${sliderPercent}%)`,
+    background: `linear-gradient(to right, #1c1c1c ${((length - 6) / (32 - 6)) * 100}%, rgba(0,0,0,0.12) ${((length - 6) / (32 - 6)) * 100}%)`,
   }
-
-  const optionsList = [
-    { label: 'Include Uppercase Letters', on: useUpper, key: 'upper' as const },
-    { label: 'Include Lowercase Letters', on: useLower, key: 'lower' as const },
-    { label: 'Include Numbers', on: useNumbers, key: 'nums' as const },
-    { label: 'Include Symbols', on: useSymbols, key: 'syms' as const },
-  ]
 
   return (
     <div
-      className="bg-wave size-full flex items-center justify-center relative overflow-hidden"
-      style={{ fontFamily: "'Inter', sans-serif", minHeight: '100vh', padding: '20px 0' }}
+      className="bg-wave size-full flex items-center justify-center"
+      style={{ fontFamily: "'Inter', sans-serif", minHeight: '100vh' }}
     >
-      {/* Glow blobs */}
+      {/* Extra blobs */}
       <div className="blob1" />
       <div className="blob2" />
 
@@ -270,29 +191,15 @@ export default function App() {
           >
             {password || '——'}
           </span>
-          <button
-            className="copy-btn"
-            onClick={handleCopy}
-            disabled={!password}
-            style={{ opacity: !password ? 0.4 : 1 }}
-          >
+          <button className="copy-btn" onClick={handleCopy}>
             {copied ? 'Copied!' : 'Copy'}
           </button>
           <button
             className={`refresh-btn ${spinning ? 'spinning' : ''}`}
             onClick={() => regenerate()}
-            title="Regenerate password"
+            title="Regenerate"
           >
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 16 16"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M13.5 2.5A7 7 0 1 0 14 8" />
               <polyline points="14 2 14 6 10 6" />
             </svg>
@@ -302,12 +209,11 @@ export default function App() {
         {/* Strength indicator */}
         <div
           style={{
-            background: `${strength.color}15`,
-            border: `1px solid ${strength.color}35`,
+            background: 'rgba(212, 160, 32, 0.1)',
+            border: '1px solid rgba(212, 160, 32, 0.25)',
             borderRadius: 10,
             padding: '8px 14px',
             marginBottom: 20,
-            transition: 'background 0.3s ease, border-color 0.3s ease',
           }}
         >
           <div className="flex items-center justify-between mb-2" style={{ gap: 8 }}>
@@ -364,29 +270,22 @@ export default function App() {
         </div>
 
         {/* Options */}
-        {optionsList.map(({ label, on, key }) => {
-          const isOnlyActive = on && activeOptions === 1
-          return (
-            <div
-              key={key}
-              className="flex items-center justify-between"
-              style={{
-                paddingBottom: 16,
-                marginBottom: 16,
-                borderBottom: '1px solid rgba(0,0,0,0.06)',
-              }}
-            >
-              <span style={{ fontSize: '0.9rem', fontWeight: 500, color: '#222' }}>
-                {label}
-              </span>
-              <Toggle
-                on={on}
-                disabled={isOnlyActive}
-                onChange={() => handleToggle(key)}
-              />
-            </div>
-          )
-        })}
+        {[
+          { label: 'Include Uppercase Letters', on: useUpper, key: 'upper' as const, setter: setUseUpper },
+          { label: 'Include Lowercase Letters', on: useLower, key: 'lower' as const, setter: setUseLower },
+          { label: 'Include Numbers', on: useNumbers, key: 'nums' as const, setter: setUseNumbers },
+          { label: 'Include Symbols', on: useSymbols, key: 'syms' as const, setter: setUseSymbols },
+        ].map(({ label, on, key, setter }) => (
+          <div
+            key={key}
+            className="flex items-center justify-between"
+            style={{ paddingBottom: 16, marginBottom: 16, borderBottom: '1px solid rgba(0,0,0,0.06)' }}
+          >
+            <span style={{ fontSize: '0.9rem', fontWeight: 500, color: '#222' }}>{label}</span>
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            <Toggle on={on} onChange={() => handleToggle(setter, on, key)} />
+          </div>
+        ))}
       </div>
     </div>
   )
