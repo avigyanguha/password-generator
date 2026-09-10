@@ -282,7 +282,6 @@ export default function App() {
             style={{ paddingBottom: 16, marginBottom: 16, borderBottom: '1px solid rgba(0,0,0,0.06)' }}
           >
             <span style={{ fontSize: '0.9rem', fontWeight: 500, color: '#222' }}>{label}</span>
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
             <Toggle on={on} onChange={() => handleToggle(setter, on, key)} />
           </div>
         ))}
