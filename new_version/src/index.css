@@ -6,6 +6,18 @@ html,
 body,
 #root {
   height: 100%;
+  min-height: 100vh;
+  min-height: 100dvh; /* mobile browsers: ignore the collapsing URL bar */
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  overflow-x: hidden; /* never allow sideways scroll on phones */
+  -webkit-tap-highlight-color: transparent;
 }
 
 * {
@@ -31,6 +43,7 @@ body,
   border-radius: 50%;
   filter: blur(80px);
   opacity: 0.7;
+  pointer-events: none;
 }
 
 .bg-wave::before {
@@ -82,6 +95,7 @@ body,
   opacity: 0.45;
   top: 30%;
   left: 60%;
+  pointer-events: none;
   animation: wave3 12s ease-in-out infinite alternate;
 }
 
@@ -95,6 +109,7 @@ body,
   opacity: 0.35;
   top: 10%;
   left: 20%;
+  pointer-events: none;
   animation: wave4 9s ease-in-out infinite alternate;
 }
 
@@ -128,6 +143,7 @@ body,
     0 8px 40px rgba(0, 0, 0, 0.12),
     0 2px 8px rgba(0, 0, 0, 0.06),
     inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  max-width: 100%;
 }
 
 /* Screw corner accents */
@@ -138,6 +154,7 @@ body,
   background: radial-gradient(circle at 40% 35%, #d0c8b8, #a0988a);
   box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.5), 0 1px 3px rgba(0, 0, 0, 0.25);
   position: relative;
+  flex-shrink: 0;
 }
 
 .screw::after {
@@ -158,6 +175,9 @@ body,
   border: 1px solid rgba(200, 190, 170, 0.5);
   border-radius: 12px;
   font-family: 'JetBrains Mono', monospace;
+  min-width: 0; /* lets the field shrink inside flex rows */
+  overflow-wrap: anywhere; /* long passwords wrap instead of overflowing */
+  word-break: break-all;
 }
 
 /* Toggle switch */
@@ -169,6 +189,7 @@ body,
   cursor: pointer;
   position: relative;
   flex-shrink: 0;
+  touch-action: manipulation;
 }
 
 .toggle-track.on {
@@ -206,6 +227,9 @@ input[type='range'] {
   border-radius: 2px;
   outline: none;
   cursor: pointer;
+  width: 100%;
+  min-width: 0;
+  touch-action: pan-y; /* horizontal drags move the slider, vertical drags still scroll */
 }
 
 input[type='range']::-webkit-slider-thumb {
@@ -241,6 +265,7 @@ input[type='range']::-moz-range-thumb {
   cursor: pointer;
   transition: opacity 0.15s ease, transform 0.1s ease;
   white-space: nowrap;
+  touch-action: manipulation;
 }
 
 .copy-btn:active {
@@ -248,26 +273,45 @@ input[type='range']::-moz-range-thumb {
 }
 
 .refresh-btn {
+  appearance: none;
+  -webkit-appearance: none;
   background: #1c1c1c;
   color: white;
+  border: 0;
   border-radius: 8px;
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 0;
   cursor: pointer;
   transition: opacity 0.15s ease, transform 0.25s ease;
   flex-shrink: 0;
+  touch-action: manipulation;
+}
+
+.refresh-btn svg {
+  display: block;
+  flex-shrink: 0;
+  overflow: visible;
+  stroke: currentColor; /* guards against global svg rules overriding it */
+}
+
+.refresh-btn.spinning svg {
+  animation: refresh-spin 0.6s linear infinite;
+}
+
+@keyframes refresh-spin {
+  to { transform: rotate(360deg); }
 }
 
 .refresh-btn:hover {
   opacity: 0.8;
 }
 
-.refresh-btn.spinning svg {
-  animation: spin 0.5s ease-in-out;
-}
 
 @keyframes spin {
   from {
@@ -296,4 +340,181 @@ input[type='range']::-moz-range-thumb {
 /* Scrollbar hide */
 ::-webkit-scrollbar {
   display: none;
+}
+
+/* ==========================================================
+   RESPONSIVE
+   ========================================================== */
+
+/* Touch devices: hover states stick after a tap, so only apply them with a real pointer */
+@media (hover: none) {
+  .refresh-btn:hover {
+    opacity: 1;
+  }
+
+  .refresh-btn:active {
+    opacity: 0.8;
+  }
+}
+
+/* Tablets and below */
+@media (max-width: 768px) {
+  /* Smaller background shapes and cheaper blurs keep scrolling smooth on phones */
+  .bg-wave::before {
+    width: 480px;
+    height: 280px;
+    bottom: -80px;
+    left: -120px;
+    filter: blur(60px);
+  }
+
+  .bg-wave::after {
+    width: 340px;
+    height: 220px;
+    top: -60px;
+    right: -100px;
+    filter: blur(60px);
+  }
+
+  .blob1 {
+    width: 240px;
+    height: 150px;
+    left: 45%;
+    filter: blur(60px);
+  }
+
+  .blob2 {
+    width: 200px;
+    height: 130px;
+    left: 10%;
+    filter: blur(50px);
+  }
+
+  .glass-card {
+    backdrop-filter: blur(16px) saturate(1.3);
+    -webkit-backdrop-filter: blur(16px) saturate(1.3);
+    box-shadow:
+      0 6px 28px rgba(0, 0, 0, 0.1),
+      0 2px 6px rgba(0, 0, 0, 0.05),
+      inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  }
+}
+
+/* Phones */
+@media (max-width: 640px) {
+  .pw-field {
+    border-radius: 10px;
+    font-size: 15px;
+  }
+
+  /* Bigger touch targets (44px is the usual minimum) */
+  .toggle-track {
+    width: 52px;
+    height: 30px;
+  }
+
+  .toggle-thumb {
+    top: 3px;
+    width: 24px;
+    height: 24px;
+  }
+
+  .toggle-track.on .toggle-thumb {
+    left: 25px;
+  }
+
+  .toggle-track.off .toggle-thumb {
+    left: 3px;
+  }
+
+  input[type='range'] {
+    height: 6px;
+  }
+
+  input[type='range']::-webkit-slider-thumb {
+    width: 26px;
+    height: 26px;
+  }
+
+  input[type='range']::-moz-range-thumb {
+    width: 26px;
+    height: 26px;
+  }
+
+  .copy-btn {
+    min-height: 44px;
+    padding: 10px 16px;
+    font-size: 14px;
+  }
+
+  .strength-bar-track {
+    height: 6px;
+  }
+
+  /* 16px+ stops iOS Safari from zooming in when a field is focused */
+  input[type='text'],
+  input[type='number'],
+  input[type='password'],
+  textarea,
+  select {
+    font-size: 16px;
+  }
+}
+
+/* Very small phones (iPhone SE, Galaxy Fold, etc.) */
+@media (max-width: 380px) {
+  .pw-field {
+    font-size: 14px;
+  }
+
+  .copy-btn {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+
+  .screw {
+    width: 12px;
+    height: 12px;
+  }
+
+  .screw::after {
+    inset: 2px;
+  }
+}
+
+/* Short landscape phones: keep the layout from feeling cramped */
+@media (max-height: 480px) and (orientation: landscape) {
+  .bg-wave::before,
+  .bg-wave::after,
+  .blob1,
+  .blob2 {
+    opacity: 0.4;
+  }
+}
+
+/* Notches and home indicators */
+@supports (padding: max(0px)) {
+  body {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* Respect users who turn animations off (also saves battery on phones) */
+@media (prefers-reduced-motion: reduce) {
+  .bg-wave::before,
+  .bg-wave::after,
+  .blob1,
+  .blob2 {
+    animation: none;
+  }
+
+  .refresh-btn,
+  .copy-btn,
+  .toggle-track,
+  .toggle-thumb,
+  .strength-bar-fill {
+    transition: none;
+  }
 }
